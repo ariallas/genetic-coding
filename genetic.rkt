@@ -3,8 +3,27 @@
 (define MAX_POPULATION 30) ; Population size
 (define MAX_GENERATION 50) ; Generation to stop evolving at
 
+(define COST_COEF 4)
+(define BAD_COEF -1)
+(define BOUND_MULTIPLIER 3)
+
 (provide solve)
 (define (solve weights volumes costs W V C)
+
+  ; Speciemen's fitness
+  (define (fitness specimen)
+    (let ((st (stats specimen)))
+      (+ (* (car st)   BAD_COEF (if (> (car st)  W) BOUND_MULTIPLIER 1))
+         (* (cadr st)  BAD_COEF (if (> (cadr st) V) BOUND_MULTIPLIER 1))
+         (* (caddr st) COST_COEF))))
+
+  ; Mutate this specimen
+  (define (mutation specimen)
+    (define (invert-pos list pos)
+      (if (= 0 pos)
+          (cons (- 1 (car list)) (cdr list))
+          (cons (car list) (invert-pos (cdr list) (- pos 1)))))
+    (invert-pos specimen (random (length specimen))))
   
   ; Breed and create next population
   (define (new-population population generation)
@@ -58,12 +77,11 @@
 
   ; Generate first ever population ant let them do their job
   ;(let ((best-specimen (find-best-specimen (new-population (generate-first-population MAX_POPULATION)))))
-  ;  (if (null? best-specimen)
-  ;      '(#f)
-  ;      (cons #t (convert-specimen best-specimen)))))
-
-  ; For testing
-  (let ((best-specimen (find-best-specimen (generate-first-population MAX_POPULATION))))
-   (if (null? best-specimen)
-       '(#f)
-       (cons #t (append (stats best-specimen) (list (convert-specimen best-specimen)))))))
+   ; (if (null? best-specimen)
+    ;    '(#f)
+     ;   (cons #t (convert-specimen best-specimen)))))
+  (for-each (lambda (x)
+              (newline)
+              (print (fitness x))
+              (print (stats x))
+              (print x)) (generate-first-population 10)))
