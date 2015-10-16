@@ -17,7 +17,7 @@
           (total-weight (foldl + 0 weights))
           (total-volume (foldl + 0 volumes))
           (total-cost   (foldl + 0 costs)))
-      (if (or (> (car st) W) (> (cadr st) V))
+      (if (or (> (car st) W) (> (cadr st) V) (= (caddr st) 0))
           1
           (* (/ (caddr st) total-cost) 100)))) 
       ;(+ (* (car st)   BAD_COEF (if (> (car st)  W) BOUND_MULTIPLIER 1))
@@ -34,7 +34,7 @@
     (invert-pos specimen (random (length specimen))))
   
   ; Breed and create next population
-  (define (evolve population generation)
+  (define (evolve population generation best-specimen)
 
     (define (calculate-likehoods population)
       
@@ -53,6 +53,17 @@
                   total-fitness)))
 
       (loop population '() (foldl + 0 (map fitness population))))
+
+    ; Find the best specimen that fits the conditions
+    (define (find-best-specimen current-best)
+      (foldl (lambda (a b)
+               (let ((stats-a (stats a))
+                     (stats-b (stats b)))
+                 (if (and (<= (car stats-a) W) (<= (cadr stats-a) V) (>= (caddr stats-a) C) (or (null? b) (>= (caddr stats-a) (caddr stats-b))))
+                     a
+                     b)))
+             current-best
+             population))
     
     (define (new-generation likehoods new-population)
 
@@ -87,8 +98,8 @@
           (new-generation likehoods (cons (new-specimen 1) new-population))))
 
     (if (= MAX_GENERATION generation)
-        population
-        (evolve (new-generation (calculate-likehoods population) '()) (+ 1 generation))))
+        (find-best-specimen best-specimen)
+        (evolve (new-generation (calculate-likehoods population) '()) (+ 1 generation) (find-best-specimen best-specimen))))
   
   ; Be a god
   (define (generate-first-population N)
@@ -101,17 +112,6 @@
           population
           (loop (- N 1) (cons (generate-specimen) population))))
     (loop N '()))
-  
-  ; Find the best specimen that fits the conditions
-  (define (find-best-specimen population)
-    (foldl (lambda (a b)
-             (let ((stats-a (stats a))
-                   (stats-b (stats b)))
-               (if (and (<= (car stats-a) W) (<= (cadr stats-a) V) (>= (caddr stats-a) C) (or (null? b) (>= (caddr stats-a) (caddr stats-b))))
-                   a
-                   b)))
-           '()
-           population))
 
   ; Calculate specimen stats
   (define (stats specimen)
@@ -137,11 +137,15 @@
     (loop specimen 1 '()))
 
   ; Generate first ever population ant let them do their job
-  (let ((best-specimen (find-best-specimen (evolve (generate-first-population MAX_POPULATION) 1))))
+;  (let ((best-specimen (find-best-specimen (evolve (generate-first-population MAX_POPULATION) 1))))
+;    (if (null? best-specimen)
+;        '(#f)
+;        (cons #t (append (stats best-specimen) (list (convert-specimen best-specimen)))))))
+
+  (let ((best-specimen (evolve (generate-first-population MAX_POPULATION) 1 '())))
     (if (null? best-specimen)
         '(#f)
         (cons #t (append (stats best-specimen) (list (convert-specimen best-specimen)))))))
-
 ;  (let ((pop (generate-first-population MAX_POPULATION)))
 ;    (for-each (lambda (x)
 ;                (newline)

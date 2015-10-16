@@ -37,9 +37,13 @@
 
     ; Generate a true test, where you can take all items
     (define (generate-takeall-test)
-      (list (list (generate-items TEST_SIZE) (generate-items TEST_SIZE) (generate-items TEST_SIZE)
-                  (* TEST_SIZE MAX_ITEM_PARAM) (* TEST_SIZE MAX_ITEM_PARAM) 1)
-            (cons #t (build-list TEST_SIZE (lambda (x) (+ x 1))))))
+      (let ((test (list (generate-items TEST_SIZE) (generate-items TEST_SIZE) (generate-items TEST_SIZE) (* TEST_SIZE MAX_ITEM_PARAM) (* TEST_SIZE MAX_ITEM_PARAM) 1)))
+        (list test
+              (list #t
+                    (foldl + 0 (car test))
+                    (foldl + 0 (cadr test))
+                    (foldl + 0 (caddr test))
+                    (build-list TEST_SIZE (lambda (x) (+ x 1)))))))
 
     ; Get the best solution bu exhaustive search
     (define (get-anwser test)
