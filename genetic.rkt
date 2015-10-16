@@ -12,10 +12,17 @@
 
   ; Speciemen's fitness
   (define (fitness specimen)
-    (let ((st (stats specimen)))
-      (+ (* (car st)   BAD_COEF (if (> (car st)  W) BOUND_MULTIPLIER 1))
-         (* (cadr st)  BAD_COEF (if (> (cadr st) V) BOUND_MULTIPLIER 1))
-         (* (caddr st) COST_COEF))))
+    (let ((st (stats specimen))
+          (total-weight (foldl + 0 weights))
+          (total-volume (foldl + 0 volumes))
+          (total-cost   (foldl + 0 costs)))
+      (if (or (> (car st) W) (> (cadr st) V))
+          1
+          (* (/ (caddr st) total-cost) 100)))) 
+      ;(+ (* (car st)   BAD_COEF (if (> (car st)  W) BOUND_MULTIPLIER 1))
+      ;   (* (cadr st)  BAD_COEF (if (> (cadr st) V) BOUND_MULTIPLIER 1))
+      ;   (* (caddr st) COST_COEF)
+      ;   (* (- BAD_COEF) BOUND_MULTIPLIER (+ (- total-weight W))))))
 
   ; Mutate this specimen
   (define (mutation specimen)
@@ -26,8 +33,39 @@
     (invert-pos specimen (random (length specimen))))
   
   ; Breed and create next population
-  (define (new-population population generation)
-    '())
+  (define (evolve population generation)
+
+    (define (calculate-likehoods population)
+      
+      (define (loop population likehoods total-fitness)
+        
+        (define (calculate-likehood specimen last-likehood)
+          (+ last-likehood (/ (fitness specimen) total-fitness)))
+        
+        (if (null? population)
+            (reverse likehoods)
+            (loop (cdr population)
+                  (cons (calculate-likehood (car population) (if (null? likehoods)
+                                                                 0
+                                                                 (car likehoods)))
+                        likehoods)
+                  total-fitness)))
+
+      (loop population '() (foldl + 0 (map fitness population))))
+    
+    (define (new-generation likehoods new-population)
+
+      (define (new-specimen)
+        '())
+      
+      (if (= (length new-population) MAX_POPULATION)
+          new-population
+          (new-generation likehoods (cons (new-specimen) new-population))))
+
+    ;(if (= MAX_GENERATION generation)
+    ;    population
+    ;    (evolve (new-generation population (calculate-likehoods population) '()) (+ 1 generation))))
+    (calculate-likehoods population))
   
   ; Be a god
   (define (generate-first-population N)
@@ -76,12 +114,17 @@
     (loop specimen 1 '()))
 
   ; Generate first ever population ant let them do their job
-  ;(let ((best-specimen (find-best-specimen (new-population (generate-first-population MAX_POPULATION)))))
-   ; (if (null? best-specimen)
-    ;    '(#f)
-     ;   (cons #t (convert-specimen best-specimen)))))
-  (for-each (lambda (x)
-              (newline)
-              (print (fitness x))
-              (print (stats x))
-              (print x)) (generate-first-population 10)))
+  ;(let ((best-specimen (find-best-specimen (evolve (generate-first-population MAX_POPULATION) 1))))
+  ;  (if (null? best-specimen)
+  ;      '(#f)
+  ;      (cons #t (convert-specimen best-specimen)))))
+
+  (let ((pop (generate-first-population 10)))
+    (for-each (lambda (x)
+                (newline)
+                (print (fitness x))
+                (print (stats x))
+                (print x))
+              pop)
+    (newline)
+    (print (evolve pop 1))))
