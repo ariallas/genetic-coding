@@ -1,7 +1,8 @@
 #lang scheme/base
 
 (define MAX_POPULATION 30) ; Population size
-(define MAX_GENERATION 50) ; Generation to stop evolving at
+(define MAX_GENERATION 100) ; Generation to stop evolving at
+(define MAX_PARENT_ITERATION 10) 
 
 (define COST_COEF 4)
 (define BAD_COEF -1)
@@ -55,17 +56,39 @@
     
     (define (new-generation likehoods new-population)
 
-      (define (new-specimen)
-        '())
+      (define (new-specimen iteration)
+
+        (define (breed mother father)
+          
+          (define (list-head lst pos head)
+            (if (= 0 pos)
+                (reverse head)
+                (list-head (cdr lst) (- pos 1) (cons (car lst) head))))
+          
+          (let* ((crossover-pos (random (+ (length father) 1)))
+                 (child (append (list-head mother crossover-pos '()) (list-tail father crossover-pos))))
+            (if (< 0.2 (random))
+                (mutation child)
+                child)))
+          
+        (define (get-parent population likehoods likehood)
+          (if (< likehood (car likehoods))
+              (car population)
+              (get-parent (cdr population) (cdr likehoods) likehood)))
+                
+        (let ((mother (get-parent population likehoods (random)))
+              (father (get-parent population likehoods (random))))
+          (if (or (not (equal? mother father)) (> iteration MAX_PARENT_ITERATION))
+              (breed mother father)
+              (new-specimen (+ iteration 1)))))
       
       (if (= (length new-population) MAX_POPULATION)
           new-population
-          (new-generation likehoods (cons (new-specimen) new-population))))
+          (new-generation likehoods (cons (new-specimen 1) new-population))))
 
-    ;(if (= MAX_GENERATION generation)
-    ;    population
-    ;    (evolve (new-generation population (calculate-likehoods population) '()) (+ 1 generation))))
-    (calculate-likehoods population))
+    (if (= MAX_GENERATION generation)
+        population
+        (evolve (new-generation (calculate-likehoods population) '()) (+ 1 generation))))
   
   ; Be a god
   (define (generate-first-population N)
@@ -114,17 +137,23 @@
     (loop specimen 1 '()))
 
   ; Generate first ever population ant let them do their job
-  ;(let ((best-specimen (find-best-specimen (evolve (generate-first-population MAX_POPULATION) 1))))
-  ;  (if (null? best-specimen)
-  ;      '(#f)
-  ;      (cons #t (convert-specimen best-specimen)))))
+  (let ((best-specimen (find-best-specimen (evolve (generate-first-population MAX_POPULATION) 1))))
+    (if (null? best-specimen)
+        '(#f)
+        (cons #t (append (stats best-specimen) (list (convert-specimen best-specimen)))))))
 
-  (let ((pop (generate-first-population 10)))
-    (for-each (lambda (x)
-                (newline)
-                (print (fitness x))
-                (print (stats x))
-                (print x))
-              pop)
-    (newline)
-    (print (evolve pop 1))))
+;  (let ((pop (generate-first-population MAX_POPULATION)))
+;    (for-each (lambda (x)
+;                (newline)
+;                (print (fitness x))
+;                (print (stats x))
+;                (print x))
+;              pop)
+;    (newline)
+;    (newline)
+;    (for-each (lambda (x)
+;                (newline)
+;                (print (fitness x))
+;                (print (stats x))
+;                (print x))
+;              (evolve pop 1))))
