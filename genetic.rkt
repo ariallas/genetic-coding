@@ -1,10 +1,11 @@
 #lang scheme/base
 
-(define MAX_POPULATION 30) ; Population size
-(define MAX_GENERATION 100) ; Generation to stop evolving at
+(define MAX_POPULATION 150) ; Population size
+(define MAX_GENERATION 50) ; Generation to stop evolving at
 (define MAX_PARENT_ITERATION 10)
 
 (define MUTATION_PROBABILITY 0.1)
+(define ELITISM_COUNT 2)
 
 (provide solve)
 (define (solve weights volumes costs W V C)
@@ -42,9 +43,9 @@
   ; Breed and create next population
   (define (evolve population generation)
     
-    (define (calculate-likehoods population)
+    (define (calculate-likehoods population fitness-map total-fitness)
       
-      (define (loop population likehoods fitness-map total-fitness)
+      (define (loop population likehoods fitness-map)
         
         (define (calculate-likehood specimen-fitness last-likehood)
           (+ last-likehood (/ specimen-fitness total-fitness)))
@@ -57,11 +58,9 @@
                                                 0
                                                 (car likehoods)))
                         likehoods)
-                  (cdr fitness-map)
-                  total-fitness)))
+                  (cdr fitness-map))))
 
-      (let ((fitness-map (map fitness population)))
-      (loop population '() fitness-map (foldl + 0 fitness-map))))
+      (loop population '() fitness-map))
     
     (define (new-generation likehoods new-population)
       
@@ -88,14 +87,26 @@
           (if (or (not (equal? mother father)) (> iteration MAX_PARENT_ITERATION))
               (breed mother father)
               (new-specimen (+ iteration 1)))))
-      
-      (if (= (length new-population) MAX_POPULATION)
-          new-population
+
+      (define (take-best-specimens count)
+        
+        (define (loop sorted-pop head count)
+          (if (= 0 count)
+              head
+              (loop (cdr sorted-pop) (cons (car sorted-pop) head) (- count 1))))
+        (loop (sort population (lambda (x y) (> (fitness x) (fitness y)))) '() count))
+                    
+      (if (= (length new-population) (-  MAX_POPULATION ELITISM_COUNT))
+          (append (take-best-specimens ELITISM_COUNT) new-population)
+          ;new-population
           (new-generation likehoods (cons (new-specimen 1) new-population))))
-    
-    (if (= MAX_GENERATION generation)
-        population
-        (evolve (new-generation (calculate-likehoods population) '()) (+ 1 generation))))
+
+    (let* ((fitness-map (map fitness population))
+           (total-fitness (foldl + 0 fitness-map)))
+      (if (or (= MAX_GENERATION generation)
+              (= 0 total-fitness))
+          population
+          (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '()) (+ 1 generation)))))
   
   ; Be a god
   (define (generate-first-population N)
@@ -144,23 +155,23 @@
     (loop specimen 1 '()))
   
   ; Generate first ever population ant let them do their job
-  ;(let ((best-specimen (find-best-specimen (evolve (generate-first-population MAX_POPULATION) 1))))
-  ;  (if (null? best-specimen)
-  ;      '(#f)
-  ;      (cons #t (append (stats best-specimen) (list (convert-specimen best-specimen)))))))
+  (let ((best-specimen (find-best-specimen (evolve (generate-first-population MAX_POPULATION) 1))))
+    (if (null? best-specimen)
+        '(#f)
+        (cons #t (append (stats best-specimen) (list (convert-specimen best-specimen)))))))
   
-  (let ((pop (generate-first-population MAX_POPULATION)))
-    (for-each (lambda (x)
-                (newline)
-                (print (fitness x))
-                (print (stats x))
-                (print x))
-              pop)
-    (newline)
-    (newline)
-    (for-each (lambda (x)
-                (newline)
-                (print (fitness x))
-                (print (stats x))
-                (print x))
-              (evolve pop 1))))
+;  (let ((pop (generate-first-population MAX_POPULATION)))
+;    (for-each (lambda (x)
+;                (newline)
+;                (print (fitness x))
+;                (print (stats x))
+;                (print x))
+;              pop)
+;    (newline)
+;    (newline)
+;    (for-each (lambda (x)
+;                (newline)
+;                (print (fitness x))
+;                (print (stats x))
+;                (print x))
+;              (evolve pop 1))))
