@@ -11,18 +11,18 @@
 ; Just checking all tests...
 (let ((tests (with-input-from-file "tests.txt" read)))
 
-  (define (check-anwsers result anwsers anwsers-original)
+  (define (check-anwsers result anwsers anwsers-original test)
     (cond ((null? anwsers)
-           (fprintf (current-output-port) "~nTest ~a failed. Got:~n~a~nExpected:~n~a~n" cnt result (car anwsers-original)))
+           (fprintf (current-output-port) "~nTest ~a failed. Got:~n~a~nExpected:~n~a~nTest:~n~a~n" cnt result (car anwsers-original) test))
           ((equal? result (car anwsers))
            (set! succeded (+ succeded 1)))
           (else
-           (check-anwsers result (cdr anwsers) anwsers-original))))
+           (check-anwsers result (cdr anwsers) anwsers-original test))))
 
   (for-each
    (lambda (test)
      (set! cnt (+ cnt 1))
-     (check-anwsers (apply solve (car test)) (cadr test) (cadr test)))
+     (check-anwsers (apply solve (car test)) (cadr test) (cadr test) (car test)))
    tests))
 
 (newline)
