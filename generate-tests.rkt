@@ -1,6 +1,6 @@
 #lang scheme/base
 
-(define TEST_SIZE 5)
+(define TEST_SIZE 20)
 (define MAX_ITEM_PARAM 10)
 
 ; Just random + 1
