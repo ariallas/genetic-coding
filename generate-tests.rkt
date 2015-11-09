@@ -86,8 +86,7 @@
         (let ((test (generate-test)))
           (generate-tests (- num-tests 1) (cons (list test (get-anwsers test)) tests)))))
 
-;  (with-output-to-file "tests.txt"
-;    (lambda () (print (generate-tests num-tests '())))
-;    #:mode 'text
-;    #:exists 'replace))
-  (generate-tests num-tests '()))
+  (with-output-to-file "tests.txt"
+    (lambda () (print (generate-tests num-tests '())))
+    #:mode 'text
+    #:exists 'replace))
