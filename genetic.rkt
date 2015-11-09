@@ -116,17 +116,19 @@
 ;              (else (loop (cdr fitness-map) cnt max min))))
         (cond ((and (null? fitness-map) (> (/ cnt MAX_POPULATION) 0.8)) #t)
               ((null? fitness-map) #f)
-              ((< (- max (car fitness-map)) 4) (loop (cdr fitness-map) (+ cnt 1) max min))
-              (else (loop (cdr fitness-map) cnt max min))))
+              ((< (- max (car fitness-map)) 4)
+               (loop (cdr fitness-map) (+ cnt 1) max min))
+              (else
+               (loop (cdr fitness-map) cnt max min))))
 
       (loop fitness-map 0 (apply max fitness-map) (apply min fitness-map)))
 
     (let* ((fitness-map (map fitness population))
            (total-fitness (foldl + 0 fitness-map)))
-      (cond ((check-dead-end fitness-map)
-             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #t) (+ 1 generation)))
-            ((or (= MAX_GENERATION generation) (= 0 total-fitness))
+      (cond ((or (= MAX_GENERATION generation) (= 0 total-fitness))
              population)
+            ((check-dead-end fitness-map)
+             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #t) (+ 1 generation)))
             (else
              (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #f) (+ 1 generation))))))
 ;      (if (or (= MAX_GENERATION generation)

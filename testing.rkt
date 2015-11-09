@@ -17,6 +17,7 @@
           ((equal? result (car anwsers))
            (set! succeded (+ succeded 1)))
           (else
+           (if (= (modulo cnt 10) 0) (fprintf (current-output-port) "~n~a tests done~n" cnt) (void))
            (check-anwsers result (cdr anwsers) anwsers-original test))))
 
   (for-each
