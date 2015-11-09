@@ -1,6 +1,6 @@
 #lang scheme/base
 
-(define TEST_SIZE 20)
+(define TEST_SIZE 5)
 (define MAX_ITEM_PARAM 10)
 
 ; Just random + 1
@@ -33,28 +33,32 @@
     (define (generate-false-test)
       (list (list (generate-items TEST_SIZE) (generate-items TEST_SIZE) (generate-items TEST_SIZE)
                   (* TEST_SIZE MAX_ITEM_PARAM) (* TEST_SIZE MAX_ITEM_PARAM) (* TEST_SIZE MAX_ITEM_PARAM))
-            '(#f)))
+            '((#f))))
 
     ; Generate a true test, where you can take all items
     (define (generate-takeall-test)
-      (let ((test (list (generate-items TEST_SIZE) (generate-items TEST_SIZE) (generate-items TEST_SIZE) (* TEST_SIZE MAX_ITEM_PARAM) (* TEST_SIZE MAX_ITEM_PARAM) 1)))
+      (let ((test (list (generate-items TEST_SIZE)
+                        (generate-items TEST_SIZE)
+                        (generate-items TEST_SIZE)
+                        (* TEST_SIZE MAX_ITEM_PARAM)
+                        (* TEST_SIZE MAX_ITEM_PARAM) 1)))
         (list test
-              (list #t
-                    (foldl + 0 (car test))
-                    (foldl + 0 (cadr test))
-                    (foldl + 0 (caddr test))
-                    (build-list TEST_SIZE (lambda (x) (+ x 1)))))))
+              (list (list #t
+                          (foldl + 0 (car test))
+                          (foldl + 0 (cadr test))
+                          (foldl + 0 (caddr test))
+                          (build-list TEST_SIZE (lambda (x) (+ x 1))))))))
 
     ; Get the best solution bu exhaustive search
-    (define (get-anwser test)
+    (define (get-anwsers test)
       
       (define (exhaustive-search weights volumes costs W V C)
         
         (define (do-search weights volumes costs cur-item cur-items cur-weight cur-volume cur-cost)
-          (cond ((and (null? weights) (<= cur-weight W) (<= cur-volume V))
-                 (list cur-weight cur-volume cur-cost cur-items))
+          (cond ((and (null? weights) (<= cur-weight W) (<= cur-volume V) (>= cur-cost C))
+                 (list (list #t cur-weight cur-volume cur-cost cur-items)))
                 ((or (null? weights) (> cur-weight W) (> cur-volume V))
-                 (list 0 0 0 '()))
+                 (list (list #f 0 0 0 '())))
                 (else (let ((branch1
                              (do-search (cdr weights) (cdr volumes) (cdr costs)
                                         (+ cur-item 1) (append cur-items (list cur-item))
@@ -63,23 +67,27 @@
                              (do-search (cdr weights) (cdr volumes) (cdr costs)
                                         (+ cur-item 1) cur-items
                                         cur-weight cur-volume cur-cost)))
-                        (cond ((and (> cur-cost (caddr branch1)) (> cur-cost (caddr branch2))) (cons (cur-cost cur-items)))
-                              ((> (caddr branch1) (caddr branch2)) branch1)
-                              (else branch2))))))
+                        (cond ((> (cadddr (car branch1)) (cadddr (car branch2)))
+                               branch1)
+                              ((< (cadddr (car branch1)) (cadddr (car branch2)))
+                               branch2)
+                              (else
+                               (append branch1 branch2)))))))
         
         (do-search weights volumes costs 1 '() 0 0 0))
 
       (let ((result (apply exhaustive-search test)))
-        (if (and (> (car result) 0) (>= (caddr result) (car (reverse test))))
-            (cons #t result)
-            '(#f))))
+        (if (and (> (cadr (car result)) 0) (>= (cadddr (car result)) (car (reverse test))))
+            result
+            '((#f)))))
     
     (if (= num-tests 0)
         (cons (generate-takeall-test) (cons (generate-false-test) tests))
         (let ((test (generate-test)))
-          (generate-tests (- num-tests 1) (cons (list test (get-anwser test)) tests)))))
+          (generate-tests (- num-tests 1) (cons (list test (get-anwsers test)) tests)))))
 
-  (with-output-to-file "tests.txt"
-    (lambda () (print (generate-tests num-tests '())))
-    #:mode 'text
-    #:exists 'replace))
+;  (with-output-to-file "tests.txt"
+;    (lambda () (print (generate-tests num-tests '())))
+;    #:mode 'text
+;    #:exists 'replace))
+  (generate-tests num-tests '()))
