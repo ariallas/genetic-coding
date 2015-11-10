@@ -15,9 +15,9 @@
     (cond ((null? anwsers)
            (fprintf (current-output-port) "~nTest ~a failed. Got:~n~a~nExpected:~n~a~nTest:~n~a~n" cnt result (car anwsers-original) test))
           ((equal? result (car anwsers))
+           (if (= (modulo cnt 10) 0) (fprintf (current-output-port) "~a tests done~n" cnt) (void))
            (set! succeded (+ succeded 1)))
           (else
-           (if (= (modulo cnt 10) 0) (fprintf (current-output-port) "~n~a tests done~n" cnt) (void))
            (check-anwsers result (cdr anwsers) anwsers-original test))))
 
   (for-each
