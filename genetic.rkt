@@ -3,7 +3,7 @@
 (define MAX_POPULATION 50)      ; Population size
 (define MAX_GENERATION 400)      ; Generation to stop evolving at
 (define MAX_PARENT_ITERATION 10) ; How many tries to find different parents
-(define NUM_POPULATIONS 2)
+(define NUM_POPULATIONS 15)
 
 (define MUTATION_PROBABILITY 0.05)
 (define ELITISM_COUNT 2)
@@ -43,7 +43,7 @@
          specimen))
   
   ; Breed and create next population
-  (define (evolve population generation)
+  (define (evolve population generation num-population)
     ; Calculate list of likehoods for roulette-wheel selection 
     (define (calculate-likehoods population fitness-map total-fitness)
       (define (loop population likehoods fitness-map)
@@ -130,12 +130,12 @@
     ; Do the evolution!
     (let* ((fitness-map (map fitness population))
            (total-fitness (foldl + 0 fitness-map)))
-      (cond ((or (= MAX_GENERATION generation) (= 0 total-fitness))
+      (cond ((or (= MAX_GENERATION generation) (= 0 total-fitness) (> num-population NUM_POPULATIONS))
              population)
             ((check-dead-end fitness-map)
-             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #t) (+ 1 generation)))
+             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #t) (+ 1 generation) (+ 1 num-population)))
             (else
-             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #f) (+ 1 generation))))))
+             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #f) (+ 1 generation) num-population)))))
   
   ; Generate random population
   (define (generate-first-population N)
@@ -185,7 +185,7 @@
     (loop specimen 1 '()))
         
   ; Generate first ever population ant let them do their job
-  (let ((best-specimen (find-best-specimen (evolve (generate-first-population MAX_POPULATION) 1))))
+  (let ((best-specimen (find-best-specimen (evolve (generate-first-population MAX_POPULATION) 1 1))))
     (if (null? best-specimen)
         '(#f)
         (cons #t (append (stats best-specimen) (list (convert-specimen best-specimen)))))))
