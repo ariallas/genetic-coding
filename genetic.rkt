@@ -184,13 +184,32 @@
              (loop (cdr specimen) (+ N 1) result))))
     (loop specimen 1 '()))
 
-  (define (result-to-string result)
-    (format "Solution found.  Weight: ~a  Volume: ~a  Cost: ~a  Items: ~a" (cadr result) (caddr result) (cadddr result) (cadr (cadddr result))))
+  (define (draw-percent-bar frame label max_value given_value)
+    (define panel (new horizontal-panel% [parent frame] [min-height 24] [stretchable-height #f]))
+    (new message% [parent panel] [label label] [min-width 60])
+    (new canvas%
+         [parent panel]
+         [style '(transparent)]
+         [paint-callback
+          (lambda (canvas dc)
+            (send dc set-brush "green" 'solid)
+            (send dc draw-rectangle 5 5 200 15)
+            (send dc set-brush "red" 'solid)
+            (send dc draw-rectangle 7 7 (* (/ given_value max_value) 194) 11)
+            )]))
+
+  (define (draw-process process-data)
+    process-data)
+
+  (define (draw-result weight volume cost items)
+    (send msg set-label (format "Solution found.  Weight: ~a  Volume: ~a  Cost: ~a  Items: ~a" weight volume cost items))
+    (draw-percent-bar frame "Weight: " W weight)
+    (draw-percent-bar frame "Volume: " V volume)
+    (draw-percent-bar frame "Cost: "   cost C))
   
   ; Do some gui stuff
-  (define frame (new frame% [label "Genetic"] [width 500] [height 500]))
+  (define frame (new frame% [label "Genetic"] [width 900] [height 900]))
   (define msg (new message% [parent frame] [label "Calculating solution..."] [auto-resize #t]))
-  
   
   ; Generate first ever population ant let them do their job
   (send frame show #t)
@@ -201,5 +220,5 @@
                      (cons #t (append (stats best-specimen) (list (convert-specimen best-specimen)))))))
     (if (eq? #f (car result))
         (send msg set-label "No solution")
-        (send msg set-label (result-to-string result)))
+        (draw-result (cadr result) (caddr result) (cadddr result) (cadddr (cdr result))))
     result))
