@@ -1,6 +1,6 @@
 #lang racket/gui
 
-(define MAX_POPULATION 50)      ; Population size
+(define MAX_POPULATION 50)       ; Population size
 (define MAX_GENERATION 400)      ; Generation to stop evolving at
 (define MAX_PARENT_ITERATION 10) ; How many tries to find different parents
 (define NUM_POPULATIONS 15)
@@ -183,11 +183,13 @@
             (else
              (loop (cdr specimen) (+ N 1) result))))
     (loop specimen 1 '()))
+
+  (define (result-to-string result)
+    (format "Solution found.  Weight: ~a  Volume: ~a  Cost: ~a  Items: ~a" (cadr result) (caddr result) (cadddr result) (cadr (cadddr result))))
   
   ; Do some gui stuff
-  (define frame (new frame% [label "Genetic"] [width 300] [height 300]))
-  (define msg (new message% [parent frame]
-                   [label "Calculating solution..."]))
+  (define frame (new frame% [label "Genetic"] [width 500] [height 500]))
+  (define msg (new message% [parent frame] [label "Calculating solution..."] [auto-resize #t]))
   
   
   ; Generate first ever population ant let them do their job
@@ -199,5 +201,5 @@
                      (cons #t (append (stats best-specimen) (list (convert-specimen best-specimen)))))))
     (if (eq? #f (car result))
         (send msg set-label "No solution")
-        (send msg set-label "Solution found"))
+        (send msg set-label (result-to-string result)))
     result))
