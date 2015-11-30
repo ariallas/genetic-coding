@@ -1,4 +1,6 @@
 #lang racket/gui
+(require plot)
+; (solve '(4 7 3 2 2 6 3 5 5 8 10 8 2 8 5 9 4) '(7 5 7 9 1 8 4 4 1 7 4 6 6 2 4 2 10) '(7 10 7 3 1 7 5 8 4 10 1 10 9 3 4 3 8) 29 20 33)
 
 (define MAX_POPULATION 50)       ; Population size
 (define MAX_GENERATION 400)      ; Generation to stop evolving at
@@ -21,10 +23,14 @@
             (cons (- 1 (car list)) (cdr list))
             (cons (car list) (remove-item (cdr list) (- num 1)))))
       
-      (let ((remove-pos (random (length specimen))))
-        (if (= (list-ref specimen remove-pos) 1)
-            (remove-item specimen remove-pos)
-            (remove-random-item specimen))))
+      (define (remove-random-item-helper)
+        (let ((remove-pos (random (length specimen))))
+          (if (= (list-ref specimen remove-pos) 1)
+              (remove-item specimen remove-pos)
+              (remove-random-item-helper))))
+      
+      (random-seed (car specimen))
+      (remove-random-item-helper))
     
     ; Return price of the specimen if conditions are met, otherwise remove random item and check again
     (let ((st (stats specimen)))
@@ -43,7 +49,7 @@
          specimen))
   
   ; Breed and create next population
-  (define (evolve population generation num-population)
+  (define (evolve population generation num-population process-data)
     ; Calculate list of likehoods for roulette-wheel selection 
     (define (calculate-likehoods population fitness-map total-fitness)
       (define (loop population likehoods fitness-map)
@@ -131,11 +137,11 @@
     (let* ((fitness-map (map fitness population))
            (total-fitness (foldl + 0 fitness-map)))
       (cond ((or (= MAX_GENERATION generation) (= 0 total-fitness) (> num-population NUM_POPULATIONS))
-             population)
+             (cons population process-data))
             ((check-dead-end fitness-map)
-             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #t) (+ 1 generation) (+ 1 num-population)))
+             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #t) (+ 1 generation) (+ 1 num-population) (cons (apply max fitness-map) process-data)))
             (else
-             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #f) (+ 1 generation) num-population)))))
+             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #f) (+ 1 generation) num-population (cons (apply max fitness-map) process-data))))))
   
   ; Generate random population
   (define (generate-first-population N)
@@ -183,7 +189,7 @@
             (else
              (loop (cdr specimen) (+ N 1) result))))
     (loop specimen 1 '()))
-
+  
   (define (draw-percent-bar frame label max_value given_value)
     (define panel (new horizontal-panel% [parent frame] [min-height 24] [stretchable-height #f]))
     (new message% [parent panel] [label label] [min-width 60])
@@ -197,15 +203,25 @@
             (send dc set-brush "red" 'solid)
             (send dc draw-rectangle 7 7 (* (/ given_value max_value) 194) 11)
             )]))
-
+  
   (define (draw-process process-data)
-    process-data)
-
-  (define (draw-result weight volume cost items)
-    (send msg set-label (format "Solution found.  Weight: ~a  Volume: ~a  Cost: ~a  Items: ~a" weight volume cost items))
+    (define c (new editor-canvas% [parent frame]))
+    (define pb (new pasteboard%))
+    (send c set-editor pb)
+    (define ys process-data)
+    (define xs (build-list (length process-data) (lambda (x) (+ x 1))))
+    (print (length process-data))
+    (send pb insert (plot-snip (points (map vector xs ys) #:color 'red))))
+  
+  (define (draw-anwser weight volume cost items)
     (draw-percent-bar frame "Weight: " W weight)
     (draw-percent-bar frame "Volume: " V volume)
     (draw-percent-bar frame "Cost: "   cost C))
+  
+  (define (draw-result weight volume cost items process-data)
+    (send msg set-label (format "Solution found.  Weight: ~a  Volume: ~a  Cost: ~a  Items: ~a" weight volume cost items))
+    (draw-anwser weight volume cost items)
+    (draw-process process-data))
   
   ; Do some gui stuff
   (define frame (new frame% [label "Genetic"] [width 900] [height 900]))
@@ -214,11 +230,12 @@
   ; Generate first ever population ant let them do their job
   (send frame show #t)
   (send msg set-label "Calculating solution...")
-  (let* ((best-specimen (find-best-specimen (evolve (generate-first-population MAX_POPULATION) 1 1)))
+  (let* ((population-data (evolve (generate-first-population MAX_POPULATION) 1 1 '()))
+         (best-specimen (find-best-specimen (car population-data)))
          (result (if (null? best-specimen)
                      '(#f)
                      (cons #t (append (stats best-specimen) (list (convert-specimen best-specimen)))))))
     (if (eq? #f (car result))
         (send msg set-label "No solution")
-        (draw-result (cadr result) (caddr result) (cadddr result) (cadddr (cdr result))))
+        (draw-result (cadr result) (caddr result) (cadddr result) (cadddr (cdr result)) (cdr population-data)))
     result))
