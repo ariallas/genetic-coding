@@ -23,14 +23,10 @@
             (cons (- 1 (car list)) (cdr list))
             (cons (car list) (remove-item (cdr list) (- num 1)))))
       
-      (define (remove-random-item-helper)
-        (let ((remove-pos (random (length specimen))))
-          (if (= (list-ref specimen remove-pos) 1)
-              (remove-item specimen remove-pos)
-              (remove-random-item-helper))))
-      
-      (random-seed (car specimen))
-      (remove-random-item-helper))
+      (let ((remove-pos (random (length specimen))))
+        (if (= (list-ref specimen remove-pos) 1)
+            (remove-item specimen remove-pos)
+            (remove-random-item specimen))))
     
     ; Return price of the specimen if conditions are met, otherwise remove random item and check again
     (let ((st (stats specimen)))
@@ -137,7 +133,7 @@
     (let* ((fitness-map (map fitness population))
            (total-fitness (foldl + 0 fitness-map)))
       (cond ((or (= MAX_GENERATION generation) (= 0 total-fitness) (> num-population NUM_POPULATIONS))
-             (cons population process-data))
+             (cons population (reverse process-data)))
             ((check-dead-end fitness-map)
              (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #t) (+ 1 generation) (+ 1 num-population) (cons (apply max fitness-map) process-data)))
             (else
@@ -204,14 +200,28 @@
             (send dc draw-rectangle 7 7 (* (/ given_value max_value) 194) 11)
             )]))
   
+  ;  (define (draw-process process-data)
+  ;    (define c (new editor-canvas% [parent frame]))
+  ;    (define pb (new pasteboard%))
+  ;    (send c set-editor pb)
+  ;    (define ys process-data)
+  ;    (define xs (build-list (length process-data) (lambda (x) (+ x 1))))
+  ;    (print (length process-data))
+  ;    (send pb insert (plot-snip (lines (map vector xs ys) #:color 'red) #:y-min 0 #:x-label "Iteration" #:y-label "Fitness")))
+  
   (define (draw-process process-data)
-    (define c (new editor-canvas% [parent frame]))
-    (define pb (new pasteboard%))
-    (send c set-editor pb)
+    (define panel (new horizontal-panel% [parent frame]
+                       [alignment '(center center)]
+                       [min-height 210] [stretchable-height #f]
+                       [min-width 706] [stretchable-width #f]))
     (define ys process-data)
     (define xs (build-list (length process-data) (lambda (x) (+ x 1))))
-    (print (length process-data))
-    (send pb insert (plot-snip (points (map vector xs ys) #:color 'red))))
+    (new canvas%
+         [parent panel]
+         [paint-callback
+          (lambda (canvas dc)
+            (plot/dc (lines (map vector xs ys) #:color 'red) dc 0 0 700 200 #:y-min 0 #:x-label "Iteration" #:y-label "Fitness"))])
+    (print (length process-data)))
   
   (define (draw-anwser weight volume cost items)
     (draw-percent-bar frame "Weight: " W weight)
