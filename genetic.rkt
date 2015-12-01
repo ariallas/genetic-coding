@@ -197,9 +197,9 @@
          [style '(transparent)]
          [paint-callback
           (lambda (canvas dc)
-            (send dc set-brush "green" 'solid)
+            (send dc set-brush "pink" 'solid)
             (send dc draw-rectangle 5 5 200 15)
-            (send dc set-brush "red" 'solid)
+            (send dc set-brush "palegreen" 'solid)
             (send dc draw-rectangle 7 7 (* (/ given_value max_value) 194) 11)
             )]))
   
@@ -215,8 +215,8 @@
   (define (draw-graph dots y-max title x-label y-label)
     (define panel (new horizontal-panel% [parent process-panel]
                        [alignment '(center center)]
-                       [min-height 260] [stretchable-height #f]
-                       [min-width 706] [stretchable-width #f]
+                       [min-height 210] [stretchable-height #f]
+                       [min-width 606] [stretchable-width #f]
                        [vert-margin 5] [horiz-margin 10]
                        [border 0]
                        [style '(border)]))
@@ -226,7 +226,7 @@
          [parent panel]
          [paint-callback
           (lambda (canvas dc)
-            (plot/dc (lines (map vector xs ys) #:color 'red) dc 0 0 700 250 #:y-min 0 #:y-max y-max #:x-label x-label #:y-label y-label #:title title))]))
+            (plot/dc (lines (map vector xs ys) #:color 'red) dc 0 0 600 200 #:y-min 0 #:y-max y-max #:x-label x-label #:y-label y-label #:title title))]))
   
   (define (draw-items items)
     (define (filter-item-params params items filtered-params cnt)
@@ -240,7 +240,7 @@
       (define panel (new horizontal-panel% [parent items-panel]
                          [alignment '(center center)]
                          [min-height 260] [stretchable-height #f]
-                         [min-width 706] [stretchable-width #f]
+                         [min-width 606] [stretchable-width #f]
                          [vert-margin 5] [horiz-margin 10]
                          [border 0]
                          [style '(border)]))
@@ -251,7 +251,7 @@
               (plot/dc (list (discrete-histogram (map vector labels weights) #:skip 4.5 #:x-min 0   #:color 1 #:label "Weight")
                              (discrete-histogram (map vector labels volumes) #:skip 4.5 #:x-min 1.2 #:color 3 #:label "Volume")
                              (discrete-histogram (map vector labels costs)   #:skip 4.5 #:x-min 2.4 #:color 2 #:label "Cost"))
-                       dc 0 0 700 250 #:x-label "Item" #:title title))]))
+                       dc 0 0 600 250 #:x-label "Item" #:title title))]))
     
     (draw-histogram (build-list (length weights) (lambda (x) (+ x 1))) weights volumes costs "All items")
     (draw-histogram items (filter-item-params weights items '() 1) (filter-item-params volumes items '() 1) (filter-item-params costs items '() 1) "Taken items"))
