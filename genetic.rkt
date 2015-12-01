@@ -190,7 +190,7 @@
     (loop specimen 1 '()))
   
   (define (draw-percent-bar frame label max_value given_value)
-    (define panel (new horizontal-panel% [parent frame] [min-height 24] [stretchable-height #f]))
+    (define panel (new horizontal-panel% [parent frame] [min-height 24] [stretchable-height #f] [horiz-margin 10]))
     (new message% [parent panel] [label label] [min-width 60])
     (new canvas%
          [parent panel]
@@ -212,23 +212,27 @@
   ;    (print (length process-data))
   ;    (send pb insert (plot-snip (lines (map vector xs ys) #:color 'red) #:y-min 0 #:x-label "Iteration" #:y-label "Fitness")))
 
-  (define (draw-graph dots title x-label y-label)
+  (define (draw-graph dots y-max title x-label y-label)
     (define panel (new horizontal-panel% [parent frame]
                        [alignment '(center center)]
                        [min-height 260] [stretchable-height #f]
-                       [min-width 706] [stretchable-width #f]))
+                       [min-width 706] [stretchable-width #f]
+                       [vert-margin 5] [horiz-margin 10]
+                       [border 0]
+                       [style '(border)]))
     (define ys dots)
     (define xs (build-list (length dots) (lambda (x) (+ x 1))))
     (new canvas%
          [parent panel]
          [paint-callback
           (lambda (canvas dc)
-            (plot/dc (lines (map vector xs ys) #:color 'red) dc 0 0 700 250 #:y-min 0 #:x-label x-label #:y-label y-label #:title title))]))
+            (plot/dc (lines (map vector xs ys) #:color 'red) dc 0 0 700 250 #:y-min 0 #:y-max y-max #:x-label x-label #:y-label y-label #:title title))]))
   
   (define (draw-process process-data)
-    (draw-graph (map car process-data) "Max fitness"     "Iteration" "Fitness")
-    (draw-graph (map caddr process-data) "Average fitness" "Iteration" "Fitness")
-    (draw-graph (map cadr process-data) "Min fitness"     "Iteration" "Fitness"))
+    (define y-max (+ (apply max (map car process-data)) 1))
+    (draw-graph (map car process-data)   y-max "Max fitness"     "Iteration" "Fitness")
+    (draw-graph (map caddr process-data) y-max "Average fitness" "Iteration" "Fitness")
+    (draw-graph (map cadr process-data)  y-max "Min fitness"     "Iteration" "Fitness"))
   
   (define (draw-anwser weight volume cost items)
     (draw-percent-bar frame "Weight: " W weight)
