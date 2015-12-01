@@ -128,7 +128,7 @@
                (loop (cdr fitness-map) cnt max delta))))
       
       (loop fitness-map 0 (apply max fitness-map) (apply max costs)))
-
+    
     (define (add-process-data process-data fitness-map)
       (cons (list (apply max fitness-map) (apply min fitness-map) (/ (foldl + 0 fitness-map) (length fitness-map))) process-data ))
     
@@ -211,9 +211,9 @@
   ;    (define xs (build-list (length process-data) (lambda (x) (+ x 1))))
   ;    (print (length process-data))
   ;    (send pb insert (plot-snip (lines (map vector xs ys) #:color 'red) #:y-min 0 #:x-label "Iteration" #:y-label "Fitness")))
-
+  
   (define (draw-graph dots y-max title x-label y-label)
-    (define panel (new horizontal-panel% [parent frame]
+    (define panel (new horizontal-panel% [parent process-panel]
                        [alignment '(center center)]
                        [min-height 260] [stretchable-height #f]
                        [min-width 706] [stretchable-width #f]
@@ -228,6 +228,34 @@
           (lambda (canvas dc)
             (plot/dc (lines (map vector xs ys) #:color 'red) dc 0 0 700 250 #:y-min 0 #:y-max y-max #:x-label x-label #:y-label y-label #:title title))]))
   
+  (define (draw-items items)
+    (define (filter-item-params params items filtered-params cnt)
+      (if (null? items)
+          (reverse filtered-params)
+          (if (= cnt (car items))
+              (filter-item-params (cdr params) (cdr items) (cons (car params) filtered-params) (+ cnt 1))
+              (filter-item-params (cdr params) items filtered-params (+ cnt 1)))))
+    
+    (define (draw-histogram labels weights volumes costs title) 
+      (define panel (new horizontal-panel% [parent items-panel]
+                         [alignment '(center center)]
+                         [min-height 260] [stretchable-height #f]
+                         [min-width 706] [stretchable-width #f]
+                         [vert-margin 5] [horiz-margin 10]
+                         [border 0]
+                         [style '(border)]))
+      (new canvas%
+           [parent panel]
+           [paint-callback
+            (lambda (canvas dc)
+              (plot/dc (list (discrete-histogram (map vector labels weights) #:skip 4.5 #:x-min 0   #:color 1 #:label "Weight")
+                             (discrete-histogram (map vector labels volumes) #:skip 4.5 #:x-min 1.2 #:color 3 #:label "Volume")
+                             (discrete-histogram (map vector labels costs)   #:skip 4.5 #:x-min 2.4 #:color 2 #:label "Cost"))
+                       dc 0 0 700 250 #:x-label "Item" #:title title))]))
+    
+    (draw-histogram (build-list (length weights) (lambda (x) (+ x 1))) weights volumes costs "All items")
+    (draw-histogram items (filter-item-params weights items '() 1) (filter-item-params volumes items '() 1) (filter-item-params costs items '() 1) "Taken items"))
+  
   (define (draw-process process-data)
     (define y-max (+ (apply max (map car process-data)) 1))
     (draw-graph (map car process-data)   y-max "Max fitness"     "Iteration" "Fitness")
@@ -235,21 +263,26 @@
     (draw-graph (map cadr process-data)  y-max "Min fitness"     "Iteration" "Fitness"))
   
   (define (draw-anwser weight volume cost items)
-    (draw-percent-bar frame "Weight: " W weight)
-    (draw-percent-bar frame "Volume: " V volume)
-    (draw-percent-bar frame "Cost: "   cost C))
+    (draw-percent-bar items-panel "Weight: " W weight)
+    (draw-percent-bar items-panel "Volume: " V volume)
+    (draw-percent-bar items-panel "Cost: "   cost C))
   
   (define (draw-result weight volume cost items process-data)
     (send msg set-label (format "Solution found.  Weight: ~a  Volume: ~a  Cost: ~a  Items: ~a" weight volume cost items))
+    (draw-items items)
     (draw-anwser weight volume cost items)
-    (draw-process process-data))
+    (draw-process process-data)
+    )
   
   ; Do some gui stuff
-  (define frame (new frame% [label "Genetic"]))
-  (define msg (new message% [parent frame] [label "Calculating solution..."] [auto-resize #t]))
+  (define main-frame (new frame% [label "Genetic"]))
+  (define msg (new message% [parent main-frame] [label "Calculating solution..."] [auto-resize #t]))
+  (define horizontal-frame (new horizontal-panel% [parent main-frame]))
+  (define process-panel (new vertical-panel% [parent horizontal-frame]))
+  (define items-panel   (new vertical-panel% [parent horizontal-frame]))  
   
   ; Generate first ever population ant let them do their job
-  (send frame show #t)
+  (send main-frame show #t)
   (send msg set-label "Calculating solution...")
   (let* ((population-data (evolve (generate-first-population MAX_POPULATION) 1 1 '()))
          (best-specimen (find-best-specimen (car population-data)))
