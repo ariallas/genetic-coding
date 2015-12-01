@@ -5,7 +5,7 @@
 (define MAX_POPULATION 50)       ; Population size
 (define MAX_GENERATION 400)      ; Generation to stop evolving at
 (define MAX_PARENT_ITERATION 10) ; How many tries to find different parents
-(define NUM_POPULATIONS 15)
+(define NUM_POPULATIONS 10)
 
 (define MUTATION_PROBABILITY 0.05)
 (define ELITISM_COUNT 2)
@@ -128,6 +128,9 @@
                (loop (cdr fitness-map) cnt max delta))))
       
       (loop fitness-map 0 (apply max fitness-map) (apply max costs)))
+
+    (define (add-process-data process-data fitness-map)
+      (cons (list (apply max fitness-map) (apply min fitness-map) (/ (foldl + 0 fitness-map) (length fitness-map))) process-data ))
     
     ; Do the evolution!
     (let* ((fitness-map (map fitness population))
@@ -135,9 +138,9 @@
       (cond ((or (= MAX_GENERATION generation) (= 0 total-fitness) (> num-population NUM_POPULATIONS))
              (cons population (reverse process-data)))
             ((check-dead-end fitness-map)
-             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #t) (+ 1 generation) (+ 1 num-population) (cons (apply max fitness-map) process-data)))
+             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #t) (+ 1 generation) (+ 1 num-population) (add-process-data process-data fitness-map)))
             (else
-             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #f) (+ 1 generation) num-population (cons (apply max fitness-map) process-data))))))
+             (evolve (new-generation (calculate-likehoods population fitness-map total-fitness) '() #f) (+ 1 generation) num-population (add-process-data process-data fitness-map))))))
   
   ; Generate random population
   (define (generate-first-population N)
@@ -208,20 +211,24 @@
   ;    (define xs (build-list (length process-data) (lambda (x) (+ x 1))))
   ;    (print (length process-data))
   ;    (send pb insert (plot-snip (lines (map vector xs ys) #:color 'red) #:y-min 0 #:x-label "Iteration" #:y-label "Fitness")))
-  
-  (define (draw-process process-data)
+
+  (define (draw-graph dots title x-label y-label)
     (define panel (new horizontal-panel% [parent frame]
                        [alignment '(center center)]
-                       [min-height 210] [stretchable-height #f]
+                       [min-height 260] [stretchable-height #f]
                        [min-width 706] [stretchable-width #f]))
-    (define ys process-data)
-    (define xs (build-list (length process-data) (lambda (x) (+ x 1))))
+    (define ys dots)
+    (define xs (build-list (length dots) (lambda (x) (+ x 1))))
     (new canvas%
          [parent panel]
          [paint-callback
           (lambda (canvas dc)
-            (plot/dc (lines (map vector xs ys) #:color 'red) dc 0 0 700 200 #:y-min 0 #:x-label "Iteration" #:y-label "Fitness"))])
-    (print (length process-data)))
+            (plot/dc (lines (map vector xs ys) #:color 'red) dc 0 0 700 250 #:y-min 0 #:x-label x-label #:y-label y-label #:title title))]))
+  
+  (define (draw-process process-data)
+    (draw-graph (map car process-data) "Max fitness"     "Iteration" "Fitness")
+    (draw-graph (map caddr process-data) "Average fitness" "Iteration" "Fitness")
+    (draw-graph (map cadr process-data) "Min fitness"     "Iteration" "Fitness"))
   
   (define (draw-anwser weight volume cost items)
     (draw-percent-bar frame "Weight: " W weight)
@@ -234,7 +241,7 @@
     (draw-process process-data))
   
   ; Do some gui stuff
-  (define frame (new frame% [label "Genetic"] [width 900] [height 900]))
+  (define frame (new frame% [label "Genetic"]))
   (define msg (new message% [parent frame] [label "Calculating solution..."] [auto-resize #t]))
   
   ; Generate first ever population ant let them do their job
